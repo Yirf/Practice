@@ -1,4 +1,4 @@
-Only flat file database setup.
+Only flat file database is setup.
 
 TODO:
 - Create memory storage system for each player.
