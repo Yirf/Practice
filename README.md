@@ -7,3 +7,4 @@ Only flat file database is setup.
 - [ ] Add leaderboards for top players.
 - [ ] Add config options for experience given on certain events.
 - [ ] And more, I'll think of later!!!!
+- [x]  znpcsplus linked to noc map warps
