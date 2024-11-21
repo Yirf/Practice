@@ -2,6 +2,7 @@ package me.yirf.practice.sql;
 
 import java.sql.Connection;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.UUID;
 
 public interface Database {
@@ -12,7 +13,7 @@ public interface Database {
     void create(Object key);
     boolean exists(Object key);
 
-    Object getValue(Object key, String path);
-    void setValue(Object key, String path, Object value);
+    Profile get(UUID uuid);
+    void set(UUID uuid, Profile profile);
 
 }

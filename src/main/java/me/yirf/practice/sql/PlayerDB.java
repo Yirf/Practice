@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import javax.annotation.Nullable;
 import java.sql.*;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -14,6 +15,8 @@ public class PlayerDB implements Database {
 
     private Connection connection;
     private final String path;
+
+    private HashMap<UUID, Profile> profiles = new HashMap<>();
 
     public PlayerDB(String path) {
         this.path = "jdbc:sqlite:" + path;
@@ -53,10 +56,10 @@ public class PlayerDB implements Database {
                     uuid TEXT PRIMARY KEY,
                     username TEXT NOT NULL,
                     kills INTEGER DEFAULT 0,
-                    gang TEXT DEFAULT '',
                     deaths INTEGER DEFAULT 0,
                     level INTEGER DEFAULT 1,
-                    experience DOUBLE DEFAULT 0.00
+                    experience DOUBLE DEFAULT 0.00,
+                    lastLogin LONG DEFAULT 0
                 )
             """);
             } catch (SQLException e) {
@@ -76,11 +79,11 @@ public class PlayerDB implements Database {
 
         OfflinePlayer p = Bukkit.getOfflinePlayer((UUID) key);
         if (!exists(p.getUniqueId())) {
-            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO player (uuid, username) VALUES (?, ?)")) {
+            try (PreparedStatement ps = connection.prepareStatement("INSERT INTO player (uuid, username, kills, deaths, level, experience, lastLogin) VALUES (?, ?, 0, 0, 1, 0.0, ?)")) {
                 ps.setString(1, p.getUniqueId().toString());
                 ps.setString(2, p.getName());
+                ps.setLong(3, System.currentTimeMillis());
                 ps.executeUpdate();
-                Bukkit.getLogger().info("Statement sucessful for player: " + p.getUniqueId());
             } catch (SQLException e) {
                 Bukkit.getLogger().severe("Unable to create statement for player: " + p.getUniqueId());
                 e.printStackTrace();
@@ -109,45 +112,62 @@ public class PlayerDB implements Database {
     }
 
     @Override
-    public Object getValue(Object key, String path) {
-        Object value = "null";  // Default value if no result is found
-        // Validate path to ensure it's a valid column name (you might use a list of allowed columns for this validation)
-        List<String> validColumns = Arrays.asList("uuid", "username", "kills", "gang", "deaths", "level", "experience"); // Example of valid columns
-        if (!validColumns.contains(path)) {
-            throw new IllegalArgumentException("Invalid path: " + path);
-        }
+    public Profile get(UUID uuid) {
+        String query = "SELECT kills, deaths, level, experience, lastLogin FROM player WHERE uuid = ?";
 
-        String query = "SELECT " + path + " FROM player WHERE uuid = ?";
         try (PreparedStatement ps = connection.prepareStatement(query)) {
-            ps.setObject(1, key);  // Assuming `key` is a UUID or some identifier
+            ps.setString(1, uuid.toString()); // Assuming `key` is a UUID
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    value = rs.getObject(path);  // Get the value from the result set
+                    int kills = rs.getInt("kills");
+                    int deaths = rs.getInt("deaths");
+                    int level = rs.getInt("level");
+                    double experience = rs.getDouble("experience");
+                    long lastLogin = rs.getLong("lastLogin");
+
+                    return new Profile(kills, deaths, level, experience, lastLogin); // Create and return the Profile object
                 }
             } catch (SQLException e) {
-                Bukkit.getLogger().severe("Unable to retrieve object from ResultSet");
+                Bukkit.getLogger().severe("Unable to retrieve profile from ResultSet");
                 e.printStackTrace();
             }
         } catch (SQLException e) {
-            if (e.getErrorCode() == 1) {  // SQL error handling
-                return value;
-            }
-            Bukkit.getLogger().severe("Unable to retrieve object from PreparedStatement (Error: " + e.getErrorCode() + ")");
+            Bukkit.getLogger().severe("Unable to retrieve profile from database");
             e.printStackTrace();
         }
-        return value;
+
+        return null; // Return null if no profile is found or an error occurs
     }
 
     @Override
-    public void setValue(Object key, String path, Object value) {
-        try (PreparedStatement ps = connection.prepareStatement("UPDATE player SET " + path + " = ? WHERE uuid = ?")) {
-            ps.setObject(1, value);
-            ps.setString(2, key.toString());
+    public void set(UUID uuid, Profile profile) {
+        String query = "UPDATE player SET kills = ?, deaths = ?, level = ?, experience = ?, lastLogin = ? WHERE uuid = ?";
+
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            // Set each field of the Profile record
+            ps.setInt(1, profile.kills());
+            ps.setInt(2, profile.deaths());
+            ps.setInt(3, profile.level());
+            ps.setDouble(4, profile.experience());
+            ps.setLong(5, profile.lastLogin());
+            ps.setString(6, uuid.toString());
+
             ps.executeUpdate();
         } catch (SQLException e) {
-            Bukkit.getLogger().severe("Unable to set object from PreparedStatement");
+            Bukkit.getLogger().severe("Unable to set profile in database.");
             e.printStackTrace();
         }
     }
 
+    public HashMap<UUID, Profile> getProfiles() {
+        return profiles;
+    }
+
+    public void savePlayers() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            Profile profile = getProfiles().get(player.getUniqueId());
+            set(player.getUniqueId(), profile);
+        }
+    }
 }

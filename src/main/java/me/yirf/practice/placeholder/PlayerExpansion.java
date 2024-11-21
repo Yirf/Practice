@@ -37,6 +37,19 @@ public class PlayerExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onRequest(OfflinePlayer player, String params) {
-        return db.getValue(player.getUniqueId(), params).toString();
+        if (params.equalsIgnoreCase("kills")) {
+            return "" + db.getProfiles().get(player.getUniqueId()).kills();
+        }
+        if (params.equalsIgnoreCase("deaths")) {
+            return "" + db.getProfiles().get(player.getUniqueId()).deaths();
+        }
+        if (params.equalsIgnoreCase("level")) {
+            return "" + db.getProfiles().get(player.getUniqueId()).level();
+        }
+        if (params.equalsIgnoreCase("experience")) {
+            return "" + db.getProfiles().get(player.getUniqueId()).level();
+        }
+
+        return "null";
     }
 }

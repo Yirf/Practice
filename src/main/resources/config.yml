@@ -1,0 +1,6 @@
+sql:
+  dump-time: 5 #in minutes
+
+npc:
+  test: "Map1"
+  test2: "Map2"

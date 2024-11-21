@@ -1,9 +1,10 @@
 plugins {
     id 'java'
+    id "com.github.johnrengelman.shadow" version "8.1.1"
 }
 
 group = 'me.yirf'
-version = '0.1'
+version = '1.0'
 
 repositories {
     mavenCentral()
@@ -18,13 +19,22 @@ repositories {
     maven {
         url = 'https://repo.extendedclip.com/content/repositories/placeholderapi/'
     }
+    flatDir {
+        dirs 'libs'
+    }
+    maven {
+        name "pyrSnapshots"
+        url "https://repo.pyr.lol/snapshots"
+    }
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.20.4-R0.1-SNAPSHOT")
     implementation 'org.xerial:sqlite-jdbc:3.43.0.0'
     compileOnly 'me.clip:placeholderapi:2.11.5'
-}
+    compileOnly name: 'MapRefresh-1.0', version: '1.0'
+    compileOnly "lol.pyr:znpcsplus-api:2.0.0-SNAPSHOT"
+    }
 
 def targetJavaVersion = 17
 java {
